@@ -1,4 +1,4 @@
-import {AdEntity, NewAdEntity} from "../types";
+import {AdEntity, NewAdEntity, SimpleAddEntity} from "../types";
 import {ValidationError} from "../utils/errors";
 import {pool} from "../utils/db";
 import {FieldPacket} from "mysql2";
@@ -6,15 +6,14 @@ import {FieldPacket} from "mysql2";
 type AdRecordResults = [AdEntity[], FieldPacket[]];
 
 export class AdRecord implements AdEntity {
-
     public id: string;
+
     public name: string;
     public description: string;
     public price: number;
     public url: string;
     public lat: number;
     public lon: number;
-
         constructor(obj: NewAdEntity) {
             if(!obj.name || obj.name.length > 100) {
                 throw new ValidationError('Name is required and should be less than 100 characters');
@@ -48,10 +47,25 @@ export class AdRecord implements AdEntity {
         }
 
     static async getOne(id: string): Promise<AdRecord | null> {
-        const [results] = await pool.execute("SELECT * FROM ads WHERE id = :id", {
+        const [results] = await pool.execute("SELECT * FROM `ads` WHERE `id` = :id", {
             id,
         }) as AdRecordResults;
 
         return results.length === 0 ? null : new AdRecord(results[0]);
+    }
+
+    static async findAll(name: string) : Promise<SimpleAddEntity[]> {
+        const [results] = await pool.execute("SELECT * FROM `ads` WHERE `name` LIKE :search", {
+            search: `%${name}%`,
+        }) as AdRecordResults;
+
+        return results.map(result => {
+            const {
+                id, lat, lon
+            } = result;
+            return {
+                id, lat, lon
+            };
+        });
     }
 }
